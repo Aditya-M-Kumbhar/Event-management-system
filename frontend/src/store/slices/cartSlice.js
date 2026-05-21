@@ -52,17 +52,18 @@ export const {
   applyCoupon, removeCoupon, clearCart,
 } = cartSlice.actions;
 
+// ─── Pure ESM Selectors ────────────────────────────────────────────────────────
 export const selectCartItems    = (state) => state.cart.items;
 export const selectCartSubtotal = (state) =>
   state.cart.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 export const selectCartCoupon   = (state) => state.cart.coupon;
 export const selectCartDiscount = (state) => state.cart.couponDiscount;
+
 export const selectCartTotal    = (state) => {
   const sub = state.cart.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const tax = sub * 0.18; // 18% GST
   return Math.max(0, sub + tax - state.cart.couponDiscount);
 };
 
-module.exports = cartSlice.reducer;
-module.exports = cartSlice;
+// 🌟 Single Default Export
 export default cartSlice.reducer;

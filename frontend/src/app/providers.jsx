@@ -4,6 +4,7 @@ import { Provider } from 'react-redux';
 import { store } from '../store';
 import { useEffect } from 'react';
 import { fetchCurrentUser } from '../store/slices/authSlice';
+import { ThemeProvider } from 'next-themes'; // 🌟 Added theme provider here
 
 function AuthInitializer({ children }) {
   useEffect(() => {
@@ -20,9 +21,11 @@ function AuthInitializer({ children }) {
 export function Providers({ children }) {
   return (
     <Provider store={store}>
-      <AuthInitializer>
-        {children}
-      </AuthInitializer>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem> {/* 🌟 Wrapped here */}
+        <AuthInitializer>
+          {children}
+        </AuthInitializer>
+      </ThemeProvider>
     </Provider>
   );
 }

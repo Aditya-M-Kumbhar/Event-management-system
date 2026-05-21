@@ -1,13 +1,12 @@
 import { Inter } from 'next/font/google';
-import { ThemeProvider } from 'next-themes';
 import { Toaster } from 'react-hot-toast';
 import { Providers } from './providers';
 import '../styles/globals.css';
 
 const inter = Inter({
-  subsets:  ['latin'],
-  variable: '--font-inter',
-  display:  'swap',
+  subsets:   ['latin'],
+  variable:  '--font-inter',
+  display:   'swap',
 });
 
 export const metadata = {
@@ -32,20 +31,19 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning className={inter.variable}>
       <body>
+        {/* 🌟 Providers now cleanly feeds down both Redux and Themes across the boundary! */}
         <Providers>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            {children}
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  borderRadius: '12px',
-                  fontSize:     '14px',
-                },
-              }}
-            />
-          </ThemeProvider>
+          {children}
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                borderRadius: '12px',
+                fontSize:     '14px',
+              },
+            }}
+          />
         </Providers>
       </body>
     </html>
