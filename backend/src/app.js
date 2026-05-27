@@ -1,8 +1,3 @@
-/**
- * EventSphere — Express Application Setup
- * Configures all middleware, routes, and error handling
- */
-
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -22,19 +17,21 @@ require('./config/passport');
 
 const app = express();
 
+// 🔥 1. Tell Express to trust Render's proxy headers for secure cookies
+app.set("trust proxy", 1);
+
 // ─── Security Middleware ──────────────────────────────────────────────────────
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 app.use(mongoSanitize());        // Prevent NoSQL injection
-// app.use(xss());               // XSS sanitization (add xss-clean if needed)
 
-// ─── CORS ─────────────────────────────────────────────────────────────────────
+// ─── CORS (Dynamically reads your live Vercel URL from CLIENT_URL) ────────────
 app.use(cors({
   origin: [
-    process.env.CLIENT_URL || 'http://localhost:3000',
-    'https://eventsphere.vercel.app',
-  ],
+    process.env.CLIENT_URL, // Ensure this matches your EXACT live Vercel URL on Render Dashboard
+    'http://localhost:3000' // For your local testing environment
+  ].filter(Boolean), // Clean up empty values safely
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -45,6 +42,8 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 app.use(compression());
+
+// ... Keep everything else below this exactly the same as you had it ...
 
 // ─── Logging ──────────────────────────────────────────────────────────────────
 if (process.env.NODE_ENV === 'development') {
