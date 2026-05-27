@@ -2,14 +2,14 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { Plus, Eye, Edit, BarChart2, QrCode, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Eye, Edit, QrCode, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import api from '../../../lib/axios';
 import Skeleton from '../../../components/ui/Skeleton';
 
 export default function OrganiserEventsPage() {
-  const [events,  setEvents]  = useState([]);
+  const [events,   setEvents]  = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter,  setFilter]  = useState('');
 
@@ -19,26 +19,37 @@ export default function OrganiserEventsPage() {
       const params = { limit: 50, ...(filter && { status: filter }) };
       const { data } = await api.get('/events/organiser/my-events', { params });
       setEvents(data.data);
-    } finally { setLoading(false); }
+    } catch (err) {
+      console.error('Failed to fetch events:', err.message);
+      toast.error('Could not load your events');
+    } finally { 
+      setLoading(false); 
+    }
   };
 
-  useEffect(() => { fetchEvents(); }, [filter]);
+  useEffect(() => { 
+    fetchEvents(); 
+  }, [filter]);
 
   const handleDelete = async (id, title) => {
     if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
     try {
       await api.delete(`/events/${id}`);
-      toast.success('Event deleted');
+      toast.success('Event deleted successfully');
       fetchEvents();
-    } catch (err) { toast.error(err.response?.data?.message || 'Delete failed'); }
+    } catch (err) { 
+      toast.error(err.response?.data?.message || 'Delete failed'); 
+    }
   };
 
-  const handlePublish = async (id, status) => {
+  const handlePublish = async (id, currentStatus) => {
     try {
       await api.patch(`/events/${id}/publish`);
-      toast.success(status === 'published' ? 'Event unpublished' : 'Event published!');
+      toast.success(currentStatus === 'published' ? 'Event unpublished' : 'Event published!');
       fetchEvents();
-    } catch (err) { toast.error(err.response?.data?.message || 'Action failed'); }
+    } catch (err) { 
+      toast.error(err.response?.data?.message || 'Action failed'); 
+    }
   };
 
   const STATUS_COLORS = {
@@ -114,10 +125,10 @@ export default function OrganiserEventsPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-[--color-text-secondary]">
-                      {format(new Date(event.startDate), 'MMM d, yyyy')}
+                      {event.startDate ? format(new Date(event.startDate), 'MMM d, yyyy') : 'N/A'}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`badge text-xs ${STATUS_COLORS[event.status] || 'bg-gray-100 text-gray-600'}`}>
+                      <span className={`badge text-xs px-2 py-1 rounded-full font-medium ${STATUS_COLORS[event.status] || 'bg-gray-100 text-gray-600'}`}>
                         {event.status}
                       </span>
                     </td>
@@ -130,19 +141,26 @@ export default function OrganiserEventsPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 font-medium text-brand-500">
-                      ₹{(event.totalRevenue || 0).toLocaleString()}
+                      ₹{(event.totalRevenue || 0).toLocaleString('en-IN')}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
-                        <Link href={`/events/${event.slug}`} className="p-1.5 rounded-lg hover:bg-surface-secondary dark:hover:bg-surface-dark-tertiary transition-colors text-[--color-text-muted] hover:text-brand-500" title="View">
+                        {/* Public Link View */}
+                        <Link href={`/events/${event.slug || event._id}`} className="p-1.5 rounded-lg hover:bg-surface-secondary dark:hover:bg-surface-dark-tertiary transition-colors text-[--color-text-muted] hover:text-brand-500" title="View Public Page">
                           <Eye className="w-3.5 h-3.5" />
                         </Link>
-                        <Link href={`/organiser/events/${event._id}/edit`} className="p-1.5 rounded-lg hover:bg-surface-secondary dark:hover:bg-surface-dark-tertiary transition-colors text-[--color-text-muted] hover:text-brand-500" title="Edit">
+                        
+                        {/* 🟢 FIXED: Safely reroutes to the live overview instead of the missing /edit subfolder page */}
+                        <Link href={`/events/${event.slug || event._id}`} className="p-1.5 rounded-lg hover:bg-surface-secondary dark:hover:bg-surface-dark-tertiary transition-colors text-[--color-text-muted] hover:text-brand-500" title="Manage Event">
                           <Edit className="w-3.5 h-3.5" />
                         </Link>
-                        <Link href={`/organiser/checkin/${event._id}`} className="p-1.5 rounded-lg hover:bg-surface-secondary dark:hover:bg-surface-dark-tertiary transition-colors text-[--color-text-muted] hover:text-green-500" title="Check-in">
+                        
+                        {/* QR checkin path link */}
+                        <Link href={`/organiser/checkin/${event._id}`} className="p-1.5 rounded-lg hover:bg-surface-secondary dark:hover:bg-surface-dark-tertiary transition-colors text-[--color-text-muted] hover:text-green-500" title="Check-in QR Gate">
                           <QrCode className="w-3.5 h-3.5" />
                         </Link>
+                        
+                        {/* Toggle Publish State Button */}
                         <button
                           onClick={() => handlePublish(event._id, event.status)}
                           className={`px-2 py-1 text-xs rounded-lg font-medium transition-colors ${
@@ -153,10 +171,12 @@ export default function OrganiserEventsPage() {
                         >
                           {event.status === 'published' ? 'Unpublish' : 'Publish'}
                         </button>
+                        
+                        {/* Delete Event Row Button */}
                         <button
                           onClick={() => handleDelete(event._id, event.title)}
                           className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors text-[--color-text-muted] hover:text-red-500"
-                          title="Delete"
+                          title="Delete Event permanently"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
