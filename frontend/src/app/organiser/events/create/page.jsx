@@ -31,9 +31,45 @@ export default function CreateEventPage() {
     setSaving(true);
     try {
       const formData = new FormData();
-      Object.entries(data).forEach(([k, v]) => {
-        if (v !== undefined && v !== '') formData.append(k, typeof v === 'object' ? JSON.stringify(v) : v);
+
+      // ── Build nested venue object from dot-notation fields ──────────────
+      const venue = {};
+      const skipKeys = new Set();
+      Object.keys(data).forEach((k) => {
+        if (k.startsWith('venue.')) {
+          const subKey = k.replace('venue.', '');
+          if (data[k] !== undefined && data[k] !== '') venue[subKey] = data[k];
+          skipKeys.add(k);
+        }
       });
+      if (Object.keys(venue).length > 0) {
+        formData.append('venue', JSON.stringify(venue));
+      }
+
+      // ── Coerce ticketTypes: ensure numbers and serialize as JSON ───────
+      if (Array.isArray(data.ticketTypes)) {
+        const coerced = data.ticketTypes.map((t) => ({
+          ...t,
+          price:      Number(t.price) || 0,
+          capacity:   Number(t.capacity) || 1,
+          maxPerUser: Number(t.maxPerUser) || 5,
+        }));
+        formData.append('ticketTypes', JSON.stringify(coerced));
+        skipKeys.add('ticketTypes');
+      }
+
+      // ── Coerce numeric top-level fields ────────────────────────────────
+      const numericFields = new Set(['totalCapacity']);
+
+      // ── Append remaining scalar fields ─────────────────────────────────
+      Object.entries(data).forEach(([k, v]) => {
+        if (skipKeys.has(k)) return;
+        if (v === undefined || v === '') return;
+        if (typeof v === 'object') return; // skip unexpected objects
+        formData.append(k, numericFields.has(k) ? String(Number(v) || 0) : v);
+      });
+
+      // ── Banner image upload ────────────────────────────────────────────
       const bannerFile = document.getElementById('banner-upload')?.files?.[0];
       if (bannerFile) formData.append('bannerImage', bannerFile);
 
@@ -43,6 +79,7 @@ export default function CreateEventPage() {
       toast.success('Event created successfully!');
       router.push(`/organiser/events/${res.data._id}/edit`);
     } catch (err) {
+      console.error('Event creation error:', err.response?.data || err.message);
       toast.error(err.response?.data?.message || 'Failed to create event');
     } finally {
       setSaving(false);

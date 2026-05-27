@@ -9,8 +9,26 @@ const asyncHandler = require('../../utils/asyncHandler');
 const { getPagination, getPaginationMeta } = require('../../utils/pagination');
 const cloudinaryService = require('../../services/storage/cloudinary.service');
 
+// ─── Helper: Parse FormData fields that arrive as JSON strings ─────────────
+const parseFormDataFields = (body) => {
+  const jsonFields = ['venue', 'ticketTypes', 'agenda', 'speakers', 'faqs', 'tags', 'socialLinks'];
+  jsonFields.forEach((field) => {
+    if (typeof body[field] === 'string') {
+      try { body[field] = JSON.parse(body[field]); } catch { /* leave as-is */ }
+    }
+  });
+
+  // Coerce numeric fields
+  if (body.totalCapacity) body.totalCapacity = Number(body.totalCapacity) || 1;
+
+  return body;
+};
+
 // ─── Create Event ─────────────────────────────────────────────────────────────
 exports.createEvent = asyncHandler(async (req, res) => {
+  // Parse JSON strings that come from multipart/form-data
+  parseFormDataFields(req.body);
+
   const eventData = { ...req.body, organiser: req.user._id };
 
   // Upload banner if provided
@@ -120,6 +138,9 @@ exports.getEventById = asyncHandler(async (req, res) => {
 
 // ─── Update Event ─────────────────────────────────────────────────────────────
 exports.updateEvent = asyncHandler(async (req, res) => {
+  // Parse JSON strings that come from multipart/form-data
+  parseFormDataFields(req.body);
+
   const event = await Event.findById(req.params.id);
   if (!event) return ApiResponse.error(res, 'Event not found', 404);
 
