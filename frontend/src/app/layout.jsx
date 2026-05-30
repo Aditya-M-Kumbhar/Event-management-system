@@ -10,6 +10,7 @@ const inter = Inter({
 });
 
 export const metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://eventsphere.vercel.app'),
   title:       'EventSphere — AI-Powered Event Management',
   description: 'Discover, create, and manage events with AI-powered recommendations, seamless ticketing, and real-time check-ins.',
   keywords:    'events, ticketing, event management, AI events, online events',
